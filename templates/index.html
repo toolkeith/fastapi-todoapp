@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Todo App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .add-todo {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .add-todo input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .add-todo button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .add-todo button:hover {
+            background: #0056b3;
+        }
+        .todo-list {
+            list-style: none;
+            padding: 0;
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+        .todo-item.completed {
+            background: #f0f8f0;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .todo-title {
+            flex: 1;
+            font-size: 16px;
+        }
+        .todo-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-toggle {
+            background: #28a745;
+            color: white;
+        }
+        .btn-toggle:hover {
+            background: #218838;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #c82333;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Simple Todo App</h1>
+        
+        <form class="add-todo" method="post" action="/todos">
+            <input type="text" name="title" placeholder="Add a new todo..." required>
+            <button type="submit">Add Todo</button>
+        </form>
+
+        {% if todos %}
+            <ul class="todo-list">
+                {% for todo in todos %}
+                <li class="todo-item {% if todo.completed %}completed{% endif %}">
+                    <div class="todo-title">{{ todo.title }}</div>
+                    <div class="todo-actions">
+                        <form method="post" action="/todos/{{ todo.id }}/toggle" style="display: inline;">
+                            <button type="submit" class="btn btn-toggle">
+                                {% if todo.completed %}Undo{% else %}Done{% endif %}
+                            </button>
+                        </form>
+                        <form method="post" action="/todos/{{ todo.id }}/delete" style="display: inline;">
+                            <button type="submit" class="btn btn-delete">Delete</button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="empty-state">
+                <p>No todos yet! Add one above to get started.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
