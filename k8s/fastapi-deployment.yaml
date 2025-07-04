@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-todo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fastapi-todo
+  template:
+    metadata:
+      labels:
+        app: fastapi-todo
+    spec:
+      containers:
+        - name: fastapi-todo-container
+          image:  asia-southeast1-docker.pkg.dev/verdant-bruin-464819-i9/fastapi-todoapp/fastapi-todoapp:v1
+          ports:
+            - containerPort: 80
+          env:
+            - name: DATABASE_URL
+              value: "mysql+pymysql://root:$(MYSQL_ROOT_PASSWORD)@mysql-service:3306/todo_db"
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: ROOT_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8000
+  selector:
+    app: fastapi-todo
