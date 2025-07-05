@@ -60,18 +60,25 @@ jobs:
       run: |
         export USE_GKE_GCLOUD_AUTH_PLUGIN=True
         
-        # Update the image in the deployment
-        kubectl set image deployment/fastapi-deployment fastapi-todo=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }} -n staging
-        
-        # If deployment doesn't exist, create it
+        # Check if deployment exists
         if ! kubectl get deployment fastapi-deployment -n staging >/dev/null 2>&1; then
-          # Create MySQL first
-          kubectl apply -f k8s/mysql-deployment.yaml -n staging
+          echo "Creating new deployment..."
+          
+          # Create MySQL first - modify namespace before applying
+          sed 's/namespace: default/namespace: staging/g' k8s/mysql-deployment.yaml | kubectl apply -f -
+          
+          # Wait for MySQL to be ready
           kubectl wait --for=condition=ready pod -l app=mysql -n staging --timeout=300s
           
-          # Create FastAPI deployment
-          kubectl apply -f k8s/fastapi-deployment.yaml -n staging
+          # Create FastAPI deployment - modify namespace before applying
+          sed 's/namespace: default/namespace: staging/g' k8s/fastapi-deployment.yaml | kubectl apply -f -
+          
+        else
+          echo "Deployment exists, updating image..."
         fi
+        
+        # Update the image in the deployment
+        kubectl set image deployment/fastapi-deployment fastapi-todo=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }} -n staging
         
         # Wait for deployment to complete
         kubectl rollout status deployment/fastapi-deployment -n staging --timeout=300s
