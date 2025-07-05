@@ -30,6 +30,8 @@ jobs:
     
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
     
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker ${{ env.REGISTRY }}
@@ -47,13 +49,17 @@ jobs:
     - name: Get GKE credentials
       run: |
         gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
+        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
     
     - name: Create staging namespace
       run: |
+        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
         kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
     
     - name: Deploy to staging
       run: |
+        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+        
         # Update the image in the deployment
         kubectl set image deployment/fastapi-deployment fastapi-todo=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }} -n staging
         
@@ -72,8 +78,11 @@ jobs:
     
     - name: Run smoke tests
       run: |
+        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+        
         # Port forward to test the deployment
         kubectl port-forward service/fastapi-service 8080:80 -n staging &
+        PORT_FORWARD_PID=$!
         sleep 10
         
         # Test health endpoint
@@ -81,6 +90,9 @@ jobs:
         
         # Test main page
         curl -f http://localhost:8080/ || exit 1
+        
+        # Clean up port forward
+        kill $PORT_FORWARD_PID
         
         echo "✅ Deployment successful!"
         echo "Staging environment updated with commit: ${{ github.sha }}"
