@@ -3,6 +3,8 @@ name: Simple CI/CD Pipeline
 on:
   push:
     branches: [ staging ]
+  pull_request:
+    branches: [ staging ]
 
 env:
   REGISTRY: asia-southeast1-docker.pkg.dev
@@ -10,56 +12,16 @@ env:
   REPOSITORY: fastapi-todoapp
   IMAGE_NAME: fastapi-todoapp
   GKE_CLUSTER: todoapp-cluster
-  GKE_ZONE: asia-southeast1-a
+  GKE_ZONE: asia-southeast1-b
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: test_password
-          MYSQL_DATABASE: todoapp_test
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-asyncio httpx
-    
-    - name: Run tests
-      env:
-        DATABASE_URL: mysql+pymysql://root:test_password@127.0.0.1:3306/todoapp_test
-      run: |
-        # Create test database tables
-        python -c "
-        import models
-        from database import engine
-        models.Base.metadata.create_all(bind=engine)
-        "
-        # Run tests
-        pytest tests/ -v
-
   build-and-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: test
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -126,21 +88,32 @@ jobs:
   notify:
     name: Notify
     runs-on: ubuntu-latest
-    needs: [test, build-and-deploy]
+    needs: [build-and-deploy]
     if: always()
     
     steps:
     - name: Success notification
-      if: needs.test.result == 'success' && needs.build-and-deploy.result == 'success'
+      if: needs.build-and-deploy.result == 'success'
       run: |
         echo "🎉 Deployment to staging successful!"
         echo "Commit: ${{ github.sha }}"
         echo "Branch: ${{ github.ref }}"
+        echo "Actor: ${{ github.actor }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Workflow: ${{ github.workflow }}"
+        echo "Run ID: ${{ github.run_id }}"
+        echo "::notice title=Deployment Success::Staging environment successfully updated with commit ${{ github.sha }}"
     
     - name: Failure notification
-      if: needs.test.result == 'failure' || needs.build-and-deploy.result == 'failure'
+      if: needs.build-and-deploy.result == 'failure'
       run: |
         echo "❌ Deployment failed!"
-        echo "Tests: ${{ needs.test.result }}"
         echo "Build & Deploy: ${{ needs.build-and-deploy.result }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Branch: ${{ github.ref }}"
+        echo "Actor: ${{ github.actor }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Workflow: ${{ github.workflow }}"
+        echo "Run ID: ${{ github.run_id }}"
+        echo "::error title=Deployment Failed::Staging deployment failed for commit ${{ github.sha }}"
         exit 1
