@@ -1,0 +1,40 @@
+# Ingress with static IP and SSL
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fastapi-ingress
+  namespace: default
+  annotations:
+    # Use GKE Ingress
+    kubernetes.io/ingress.class: "gce"
+    # Static IP name (you'll need to create this first)
+    kubernetes.io/ingress.global-static-ip-name: "fastapi-todoapp-ip"
+    # Enable SSL redirect
+    ingress.gcp.kubernetes.io/force-ssl-redirect: "true"
+    # Managed certificate
+    networking.gke.io/managed-certificates: "fastapi-ssl-cert"
+    # Optional: Enable Cloud Armor for security
+    # cloud.google.com/armor-config: '{"default-security-policy": "cloud-armor-policy"}'
+spec:
+  rules:
+  - host: toolkeith.me
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fastapi-service
+            port:
+              number: 80
+  # Optional: Add www subdomain
+  - host: www.toolkeith.me
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fastapi-service
+            port:
+              number: 80

@@ -1,0 +1,10 @@
+# Managed SSL Certificate
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: fastapi-ssl-cert
+  namespace: default
+spec:
+  domains:
+    - toolkeith.me
+    - www.toolkeith.me

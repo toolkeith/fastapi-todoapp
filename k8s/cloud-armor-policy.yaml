@@ -1,0 +1,38 @@
+# Optional: Cloud Armor Security Policy
+apiVersion: compute.cnrm.cloud.google.com/v1beta1
+kind: ComputeSecurityPolicy
+metadata:
+  name: cloud-armor-policy
+  namespace: default
+spec:
+  description: "Security policy for FastAPI Todo App"
+  rules:
+  - action: "allow"
+    priority: 1000
+    match:
+      versionedExpr: "SRC_IPS_V1"
+      config:
+        srcIpRanges:
+        - "*"
+    description: "Allow all traffic by default"
+  - action: "deny(403)"
+    priority: 2000
+    match:
+      expr:
+        expression: "origin.region_code == 'CN'"
+    description: "Deny traffic from China"
+  - action: "rate_based_ban"
+    priority: 3000
+    match:
+      versionedExpr: "SRC_IPS_V1"
+      config:
+        srcIpRanges:
+        - "*"
+    rateLimitOptions:
+      conformAction: "allow"
+      exceedAction: "deny(429)"
+      enforceOnKey: "IP"
+      rateLimitThreshold:
+        count: 100
+        intervalSec: 60
+    description: "Rate limit: 100 requests per minute per IP"
